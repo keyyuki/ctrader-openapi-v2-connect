@@ -18,9 +18,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "connect-protobuf-messages": "github:spotware/connect-protobuf-messages#v2.0.0",
     "dotenv": "^8.2.0",
     "get-value": "^3.0.1",
+    "protobufjs": "6.9.0",
     "rxjs": "^6.6.0",
     "set-value": "^3.0.1"
   },

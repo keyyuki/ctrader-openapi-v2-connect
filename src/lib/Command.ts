@@ -5,10 +5,10 @@ export class Command {
   resolve?: Function;
   reject?: Function;
   promise: Promise<any>;
-  message: Buffer;
+  message: any;
   status: 'sent' | 'new' | 'timeout';
 
-  constructor(id: string, message: Buffer) {
+  constructor(id: string, message: any) {
     this.id = id;
     this.message = message;
     this.promise = new Promise((resolve, reject) => {

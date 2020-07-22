@@ -1,43 +1,44 @@
 import * as getenv from 'dotenv';
 getenv.config();
-import { CtraderApiConnect } from './lib/CtraderApiConnect';
+import { CtraderOpenApiService } from './service/CtraderopenApiService';
 
 const params = {
-  clientId: process.env.CLIENT_ID,
-  clientSecret: process.env.CLIENT_SECRET,
-  accountId: process.env.ACCOUNT_ID,
-  accessToken: process.env.ACCESS_TOKEN,
-};
-const connector = new CtraderApiConnect({
   host: 'demo.ctraderapi.com',
   port: 5035,
+  clientId: process.env.CLIENT_ID || '',
+  clientSecret: process.env.CLIENT_SECRET || '',
+  accountId: +(process.env.ACCOUNT_ID || 0),
+  accessToken: process.env.ACCESS_TOKEN || '',
+};
+const service = new CtraderOpenApiService(params);
+/*
+service.send('ProtoOASubscribeSpotsReq', {
+  ctidTraderAccountId: service.accountId,
+  symbolId: 3,
 });
 
-connector
-  .send('ProtoOAApplicationAuthReq', {
-    clientId: params.clientId,
-    clientSecret: params.clientSecret,
-  })
-  .then(rs => {
-    if (rs.payloadTypeName == 'ProtoOAErrorRes') {
-      console.log('error', rs);
-    }
-    return connector.send('ProtoOAAccountAuthReq', {
-      ctidTraderAccountId: params.accountId,
-      accessToken: params.accessToken,
-    });
-  })
-  .then(rs => {
-    if (rs.payloadTypeName == 'ProtoOAErrorRes') {
-      console.log('error', rs);
-    }
-    connector.send('ProtoOASubscribeSpotsReq', {
-      ctidTraderAccountId: params.accountId,
-      //accessToken: params.accessToken,
-      symbolId: 3,
-    });
-  });
-
-connector.on('ProtoOASpotEvent', rs => {
+service.on('ProtoOASpotEvent', rs => {
   console.log(rs);
 });
+*/
+
+async function factory() {
+  console.log('aaaa');
+  await service.auth().catch(err => console.log(err));
+  console.log('bbb');
+
+  service
+    .send('ProtoOADealListReq', {
+      ctidTraderAccountId: service.accountId,
+      toTimestamp: Date.now(),
+      fromTimestamp: Date.now() - 24 * 60 * 60 * 1000,
+      maxRows: 5,
+    })
+    .then(rs => {
+      console.log('open position', rs.payload);
+    })
+    .catch(err => {
+      console.log('error on tick', err);
+    });
+}
+factory();
