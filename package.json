@@ -20,6 +20,8 @@
   "dependencies": {
     "dotenv": "^8.2.0",
     "get-value": "^3.0.1",
+    "google-protobuf": "^4.0.0-rc.2",
+    "hat": "0.0.3",
     "protobufjs": "6.9.0",
     "rxjs": "^6.6.0",
     "set-value": "^3.0.1"

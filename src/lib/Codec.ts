@@ -1,4 +1,6 @@
 import * as ProtoBuf from 'protobufjs';
+//import { decodeRaw } from './decoderaw';
+import * as fs from 'fs';
 
 interface CodecInterface {
   messageModels: Record<string, ProtoBuf.Type>;
@@ -131,12 +133,11 @@ export class Codec implements CodecInterface {
 
     if (payload) {
       message = {
-        ...payload,
         ...message,
+        ...payload,
       };
     }
 
-    console.log(message);
     const secondLevelMessage = model.create(message);
 
     const result = this.firstLevelMessageModel.create({

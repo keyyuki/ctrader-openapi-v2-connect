@@ -26,7 +26,6 @@ export class CtraderOpenApiService {
   }
 
   auth = async (): Promise<boolean> => {
-    console.log('send 1');
     const applicationAuthRes = await this.connector.send(
       'ProtoOAApplicationAuthReq',
       {
@@ -39,7 +38,6 @@ export class CtraderOpenApiService {
       throw 'application authen failed';
     }
 
-    console.log('send 2');
     const accountAuthRes = await this.connector.send('ProtoOAAccountAuthReq', {
       ctidTraderAccountId: this.accountId,
       accessToken: this.accessToken,

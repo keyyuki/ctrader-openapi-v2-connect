@@ -23,19 +23,16 @@ service.on('ProtoOASpotEvent', rs => {
 */
 
 async function factory() {
-  console.log('aaaa');
+  console.log('start auth');
   await service.auth().catch(err => console.log(err));
-  console.log('bbb');
+  console.log('end auth');
 
   service
-    .send('ProtoOADealListReq', {
+    .send('ProtoOAReconcileReq', {
       ctidTraderAccountId: service.accountId,
-      toTimestamp: Date.now(),
-      fromTimestamp: Date.now() - 24 * 60 * 60 * 1000,
-      maxRows: 5,
     })
     .then(rs => {
-      console.log('open position', rs.payload);
+      console.log('close position', rs.payload);
     })
     .catch(err => {
       console.log('error on tick', err);

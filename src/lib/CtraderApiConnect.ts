@@ -1,18 +1,11 @@
-/* eslint-disable @typescript-eslint/ban-ts-ignore */
-// @ts-ignore
-import * as ProtoMessages from 'connect-protobuf-messages'; //@TODO replace with protobufjs
 import { Codec } from './Codec';
 import * as tls from 'tls';
 import * as hat from 'hat';
 import { EventEmitter } from 'events';
 import { Subject, interval } from 'rxjs';
 import { Command } from './Command';
+const CtraderProtoc = require('../../message-model/models/OpenApiCommonMessages_pb');
 
-ProtoMessages.prototype.getPayloadNameByType = function(type: number): string {
-  return typeof this.payloadTypes[type] != 'undefined'
-    ? this.payloadTypes[type].name
-    : 'Unknown';
-};
 const protocol = new Codec();
 
 type CtraderApiConnectParam = {
@@ -114,9 +107,19 @@ export class CtraderApiConnect extends EventEmitter {
     return Buffer.concat([size, data], sizeLength + dataLength);
   };
 
-  onAdapterData = (buffer: Buffer): void => {
-    const data = protocol.decode(buffer);
-    console.log(data);
+  onAdapterData = (buffer: Uint8Array): void => {
+    let data: any;
+
+    try {
+      data = protocol.decode(buffer);
+    } catch (error) {
+      console.log(typeof buffer);
+      const message = CtraderProtoc.ProtoMessage;
+      console.log(message.deserializeBinary(buffer));
+
+      return;
+    }
+
     const name = protocol.getNameByPayloadType(data.payloadType);
     if ('clientMsgId' in data) {
       const index = this.commandStack.findIndex(
