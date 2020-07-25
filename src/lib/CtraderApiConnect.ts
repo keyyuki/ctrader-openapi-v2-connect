@@ -4,7 +4,8 @@ import * as hat from 'hat';
 import { EventEmitter } from 'events';
 import { Subject, interval } from 'rxjs';
 import { Command } from './Command';
-const CtraderProtoc = require('../../message-model/models/OpenApiCommonMessages_pb');
+//const CtraderProtoc = require('../../message-model/models/OpenApiCommonMessages_pb');
+//import * as fs from 'fs';
 
 const protocol = new Codec();
 
@@ -28,18 +29,21 @@ export class CtraderApiConnect extends EventEmitter {
       }
     });
 
-    this.adapter = tls.connect({ host: params.host, port: params.port }, () => {
-      protocol
-        .loadFromFiles([
-          'message-model/OpenApiCommonMessages.proto',
-          'message-model/OpenApiMessages.proto',
-        ])
-        .then(() => {
-          this.isConnected = true;
-          this.connectState$.next(this.isConnected);
-          console.log('init complete');
-        });
-    });
+    this.adapter = tls
+      .connect({ host: params.host, port: params.port }, () => {
+        protocol
+          .loadFromFiles([
+            'message-model/OpenApiCommonMessages.proto',
+            'message-model/OpenApiMessages.proto',
+          ])
+          .then(() => {
+            this.isConnected = true;
+            this.connectState$.next(this.isConnected);
+            console.log('init complete');
+          });
+      })
+      .setEncoding('binary')
+      .setDefaultEncoding('binary');
 
     this.adapter.on('data', this.onAdapterData);
     this.adapter.on('end', () => {
@@ -107,16 +111,13 @@ export class CtraderApiConnect extends EventEmitter {
     return Buffer.concat([size, data], sizeLength + dataLength);
   };
 
-  onAdapterData = (buffer: Uint8Array): void => {
+  onAdapterData = (buffer: string): void => {
     let data: any;
 
     try {
       data = protocol.decode(buffer);
     } catch (error) {
-      console.log(typeof buffer);
-      const message = CtraderProtoc.ProtoMessage;
-      console.log(message.deserializeBinary(buffer));
-
+      console.log(error);
       return;
     }
 

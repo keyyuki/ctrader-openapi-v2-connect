@@ -18,6 +18,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@claasahl/spotware-adapter": "^1.2.1",
+    "@types/pbf": "^3.0.2",
     "dotenv": "^8.2.0",
     "get-value": "^3.0.1",
     "google-protobuf": "^4.0.0-rc.2",

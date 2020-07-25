@@ -1,7 +1,6 @@
 import * as getenv from 'dotenv';
 getenv.config();
 import { CtraderOpenApiService } from './service/CtraderopenApiService';
-
 const params = {
   host: 'demo.ctraderapi.com',
   port: 5035,
@@ -28,11 +27,13 @@ async function factory() {
   console.log('end auth');
 
   service
-    .send('ProtoOAReconcileReq', {
+    .send('ProtoOADealListReq', {
       ctidTraderAccountId: service.accountId,
+      fromTimestamp: Date.now() - 72 * 60 * 60 * 1000,
+      toTimestamp: Date.now(),
     })
     .then(rs => {
-      console.log('close position', rs.payload);
+      console.log('close position', rs.payload, rs.payload.deal?.length);
     })
     .catch(err => {
       console.log('error on tick', err);

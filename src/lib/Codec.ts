@@ -1,35 +1,8 @@
 import * as ProtoBuf from 'protobufjs';
 //import { decodeRaw } from './decoderaw';
-import * as fs from 'fs';
 
-interface CodecInterface {
-  messageModels: Record<string, ProtoBuf.Type>;
-  enums: Record<string, ProtoBuf.Enum>;
-
-  firstLevelMessageModel?: ProtoBuf.Type;
-  payloadTypeToMesageNameMap: Record<number, string>;
-
-  loadFromFiles(files: Array<string>): Promise<void>;
-
-  getPayloadTypeByName(name: string): number;
-  getNameByPayloadType(payloadType: number): string;
-  encode(
-    messageName: string,
-    payload?: Record<string, any>,
-    clientMsgId?: string,
-  ): Uint8Array;
-
-  decode(
-    message: Uint8Array,
-  ): {
-    payloadType: number;
-    messageName: string;
-    payload: Record<string, any>;
-    clientMsgId: string | null;
-  };
-}
-
-export class Codec implements CodecInterface {
+const INT_SIZE = 4;
+export class Codec {
   messageModels: Record<string, ProtoBuf.Type> = {};
   enums: Record<string, ProtoBuf.Enum> = {};
   payloadTypeToMesageNameMap: Record<number, string> = {};
@@ -149,8 +122,36 @@ export class Codec implements CodecInterface {
     return this.firstLevelMessageModel.encode(result).finish();
   };
 
+  length = (length: number): Buffer => {
+    const buffer = Buffer.alloc(INT_SIZE);
+    buffer.writeInt32BE(length, 0);
+    return buffer;
+  };
+
+  serialize(data: Uint8Array): Buffer {
+    const len = this.length(data.length);
+    const totalLength = len.length + data.length;
+    return Buffer.concat([len, data], totalLength);
+  }
+
+  deserialize = (data: Buffer, offset = 0): Buffer => {
+    let buffer = Buffer.alloc(0);
+    buffer = Buffer.concat([buffer, data.slice(offset)]);
+    const length = buffer.readInt32BE(offset);
+    const remainingBytes = buffer.length - offset - INT_SIZE;
+    if (remainingBytes >= length) {
+      const payload = buffer.slice(
+        offset + INT_SIZE,
+        length + offset + INT_SIZE,
+      );
+      return payload;
+    } else {
+      throw new Error('buffer not large enough');
+    }
+  };
+
   decode = (
-    message: Uint8Array,
+    data: string,
   ): {
     payloadType: number;
     messageName: string;
@@ -161,8 +162,11 @@ export class Codec implements CodecInterface {
       throw 'model does load';
     }
     let firstLvMessage: Record<string, any> = {};
+    const message = Buffer.from(data, 'binary');
+
     try {
-      firstLvMessage = this.firstLevelMessageModel.decode(message);
+      const buffer = this.deserialize(message);
+      firstLvMessage = this.firstLevelMessageModel.decode(buffer);
     } catch (error) {
       for (const key in this.messageModels) {
         if (Object.prototype.hasOwnProperty.call(this.messageModels, key)) {

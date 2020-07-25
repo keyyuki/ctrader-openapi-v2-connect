@@ -35,6 +35,7 @@ export class CtraderOpenApiService {
     );
 
     if (applicationAuthRes.payloadTypeName == 'ProtoOAErrorRes') {
+      console.log(applicationAuthRes);
       throw 'application authen failed';
     }
 
@@ -44,6 +45,7 @@ export class CtraderOpenApiService {
     });
 
     if (accountAuthRes.payloadTypeName == 'ProtoOAErrorRes') {
+      console.log(accountAuthRes);
       throw 'account authen failed';
     }
 
