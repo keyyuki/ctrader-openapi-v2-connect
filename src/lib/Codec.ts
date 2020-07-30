@@ -7,7 +7,7 @@ export class Codec {
   enums: Record<string, ProtoBuf.Enum> = {};
   payloadTypeToMesageNameMap: Record<number, string> = {};
 
-  firstLevelMessageModel?: ProtoBuf.Type;
+  ProtoMessage?: ProtoBuf.Type;
 
   loadFromFiles = (files: Array<string>): Promise<void> => {
     return Promise.all(
@@ -43,8 +43,8 @@ export class Codec {
       throw 'Miss ProtoMessage, a backbone message';
     }
 
-    // build firstLevelMessageModel
-    this.firstLevelMessageModel = this.messageModels['ProtoMessage'];
+    // build ProtoMessage
+    this.ProtoMessage = this.messageModels['ProtoMessage'];
 
     // build payloadTypeToMesageNameMap
     const payloadTypes = {
@@ -87,41 +87,6 @@ export class Codec {
     return this.payloadTypeToMesageNameMap[payloadType] || '';
   };
 
-  encode = (
-    messageName: string,
-    payload?: Record<string, any>,
-    clientMsgId?: string,
-  ): Uint8Array => {
-    if (!this.firstLevelMessageModel) {
-      throw 'model does not load';
-    }
-    // find mesageModel by messagename
-    if (typeof this.messageModels[messageName] == 'undefined') {
-      throw 'message not found';
-    }
-    const model = this.messageModels[messageName];
-    let message = {
-      payloadType: this.getPayloadTypeByName(messageName),
-    };
-
-    if (payload) {
-      message = {
-        ...message,
-        ...payload,
-      };
-    }
-
-    const secondLevelMessage = model.create(message);
-
-    const result = this.firstLevelMessageModel.create({
-      payloadType: this.getPayloadTypeByName(messageName),
-      payload: model.encode(secondLevelMessage).finish(),
-      clientMsgId,
-    });
-
-    return this.firstLevelMessageModel.encode(result).finish();
-  };
-
   length = (length: number): Buffer => {
     const buffer = Buffer.alloc(INT_SIZE);
     buffer.writeInt32BE(length, 0);
@@ -150,6 +115,42 @@ export class Codec {
     }
   };
 
+  encode = (
+    messageName: string,
+    payload?: Record<string, any>,
+    clientMsgId?: string,
+  ): Buffer => {
+    if (!this.ProtoMessage) {
+      throw 'model does not load';
+    }
+    // find mesageModel by messagename
+    if (typeof this.messageModels[messageName] == 'undefined') {
+      throw 'message not found';
+    }
+    const model = this.messageModels[messageName];
+    let message = {
+      payloadType: this.getPayloadTypeByName(messageName),
+    };
+
+    if (payload) {
+      message = {
+        ...message,
+        ...payload,
+      };
+    }
+
+    const secondLevelMessage = model.create(message);
+
+    const result = this.ProtoMessage.create({
+      payloadType: this.getPayloadTypeByName(messageName),
+      payload: model.encode(secondLevelMessage).finish(),
+      clientMsgId,
+    });
+
+    const unit8Message = this.ProtoMessage.encode(result).finish();
+    return this.serialize(unit8Message);
+  };
+
   decode = (
     data: string,
   ): {
@@ -158,7 +159,7 @@ export class Codec {
     payload: Record<string, any>;
     clientMsgId: string | null;
   } => {
-    if (!this.firstLevelMessageModel) {
+    if (!this.ProtoMessage) {
       throw 'model does load';
     }
     let firstLvMessage: Record<string, any> = {};
@@ -166,20 +167,9 @@ export class Codec {
 
     try {
       const buffer = this.deserialize(message);
-      firstLvMessage = this.firstLevelMessageModel.decode(buffer);
+      firstLvMessage = this.ProtoMessage.decode(buffer);
     } catch (error) {
-      for (const key in this.messageModels) {
-        if (Object.prototype.hasOwnProperty.call(this.messageModels, key)) {
-          const model = this.messageModels[key];
-          try {
-            firstLvMessage = model.decode(message);
-            console.log(key, firstLvMessage);
-            break;
-          } catch (error) {
-            continue;
-          }
-        }
-      }
+      throw 'response message is not ProtoMessage';
     }
 
     if (!('payload' in firstLvMessage) || !('payloadType' in firstLvMessage)) {

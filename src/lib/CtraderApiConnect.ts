@@ -4,8 +4,6 @@ import * as hat from 'hat';
 import { EventEmitter } from 'events';
 import { Subject, interval } from 'rxjs';
 import { Command } from './Command';
-//const CtraderProtoc = require('../../message-model/models/OpenApiCommonMessages_pb');
-//import * as fs from 'fs';
 
 const protocol = new Codec();
 
@@ -101,14 +99,7 @@ export class CtraderApiConnect extends EventEmitter {
     payload: any,
     clientMsgId?: string,
   ): Buffer => {
-    const data = protocol.encode(payloadType, payload, clientMsgId || hat());
-
-    //const data = encodedMessage.toBuffer();
-    const sizeLength = 4;
-    const dataLength = data.length;
-    const size = new Buffer(sizeLength);
-    size.writeInt32BE(dataLength, 0);
-    return Buffer.concat([size, data], sizeLength + dataLength);
+    return protocol.encode(payloadType, payload, clientMsgId || hat());
   };
 
   onAdapterData = (buffer: string): void => {

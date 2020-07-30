@@ -18,18 +18,12 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@claasahl/spotware-adapter": "^1.2.1",
-    "@types/pbf": "^3.0.2",
     "dotenv": "^8.2.0",
-    "get-value": "^3.0.1",
-    "google-protobuf": "^4.0.0-rc.2",
     "hat": "0.0.3",
     "protobufjs": "6.9.0",
-    "rxjs": "^6.6.0",
-    "set-value": "^3.0.1"
+    "rxjs": "^6.6.0"
   },
   "devDependencies": {
-    "@types/get-value": "^3.0.1",
     "@types/hat": "0.0.1",
     "@typescript-eslint/eslint-plugin": "^2.14.0",
     "@typescript-eslint/parser": "^2.14.0",
