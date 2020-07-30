@@ -4,9 +4,7 @@ This repository rewrite example https://github.com/spotware/connect-nodejs-sampl
 
 ## 1. Lib requirement
 
-This example only use 1 lib compare with 4 of Spotware's example.
-
-- `connect-protobuf-messages\#v2.0.0` but it will be replace by `protobufjs` in next update 
+Project use lib `protobufjs` to encode and decode proto message. No need any spotware lib.
 
 ## 2. Run example
 
@@ -14,7 +12,7 @@ This example only use 1 lib compare with 4 of Spotware's example.
 
 2. rename .env.dist -> .env and add you clientId, clientSecret, accountId, and accessToken. If you dont know how to get them, read https://connect.spotware.com/docs/open_api_2/getting_started_v2
 
-3. Run 
+3. Run
 
    ```
    npm i
@@ -30,9 +28,9 @@ read src/index.ts
 
 methods:
 
-##### new CtraderApiConnect({host: string, port: string}):
+### new CtraderApiConnect({host: string, port: string}):
 
-for demo account, 
+for demo account,
 
 ```
 {
@@ -52,22 +50,20 @@ and trade account
 
 check in https://connect.spotware.com/docs/open_api_2/proxy_cloud_v2 if it change
 
-
-
-##### send(type: string, payload: Object) : Promise<response_payload>
+### send(type: string, payload: Object) : Promise<response_payload>
 
 type: name of request, find in https://connect.spotware.com/docs/open_api_2/protobuf_messages_reference_v2/open_api_messages and https://connect.spotware.com/docs/open_api_2/protobuf_messages_reference_v2/open_api_common_messages. Example: "ProtoOAApplicationAuthReq", "ProtoOAVersionReq"
 
 payload: Object payload of request type
 
-response_payload format: 
+response_payload format:
 
 ```typescript
 {
-     payload: Object;
-     payloadType: number;
-     payloadTypeName: string;
-     clientMsgId: null | string
+  payload: Object;
+  payloadType: number;
+  payloadTypeName: string;
+  clientMsgId: null | string;
 }
 ```
 
@@ -94,23 +90,20 @@ connector.send('ProtoOAApplicationAuthReq', payload).then(rs => {
 })
 ```
 
-
-
-##### on(type: string, callback: (payload) => {})
+### on(type: string, callback: (payload) => {})
 
 Listen on event
 
 Example
 
 ```typescript
-// after authen 
+// after authen
 
 connector.send('ProtoOASubscribeSpotsReq', {
-    ctidTraderAccountId: "YOUR_ACCOUNT_ID",      
-    symbolId: 3,
+  ctidTraderAccountId: 'YOUR_ACCOUNT_ID',
+  symbolId: 3,
 });
 connector.on('ProtoOASpotEvent', rs => {
   console.log(rs);
 });
 ```
-
