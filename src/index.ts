@@ -1,43 +1,53 @@
 import * as getenv from 'dotenv';
 getenv.config();
-import { CtraderApiConnect } from './lib/CtraderApiConnect';
+import { CtraderOpenApiService } from './service/CtraderopenApiService';
 
 const params = {
-  clientId: process.env.CLIENT_ID,
-  clientSecret: process.env.CLIENT_SECRET,
-  accountId: process.env.ACCOUNT_ID,
-  accessToken: process.env.ACCESS_TOKEN,
-};
-const connector = new CtraderApiConnect({
   host: 'demo.ctraderapi.com',
   port: 5035,
-});
+  clientId: process.env.CLIENT_ID || '',
+  clientSecret: process.env.CLIENT_SECRET || '',
+  accountId: +(process.env.ACCOUNT_ID || 0),
+  accessToken: process.env.ACCESS_TOKEN || '',
+};
+const service = new CtraderOpenApiService(params);
 
-connector
-  .send('ProtoOAApplicationAuthReq', {
-    clientId: params.clientId,
-    clientSecret: params.clientSecret,
-  })
-  .then(rs => {
-    if (rs.payloadTypeName == 'ProtoOAErrorRes') {
-      console.log('error', rs);
-    }
-    return connector.send('ProtoOAAccountAuthReq', {
-      ctidTraderAccountId: params.accountId,
-      accessToken: params.accessToken,
+async function factory() {
+  console.log('start auth');
+  await service.auth().catch(err => console.log(err));
+  console.log('end auth');
+
+  service
+    .send('ProtoOAGetAccountListByAccessTokenReq', {
+      accessToken: service.accessToken,
+    })
+    .then(rs => {
+      console.log('account', rs.payload);
+      return;
+    })
+    .catch(err => {
+      console.log('error', err);
     });
-  })
-  .then(rs => {
-    if (rs.payloadTypeName == 'ProtoOAErrorRes') {
-      console.log('error', rs);
-    }
-    connector.send('ProtoOASubscribeSpotsReq', {
-      ctidTraderAccountId: params.accountId,
-      //accessToken: params.accessToken,
-      symbolId: 3,
+
+  // subscribe spot event
+  service
+    .send('ProtoOASubscribeSpotsReq', {
+      ctidTraderAccountId: service.accountId,
+      symbolId: [3],
+    })
+    .then(rs => {
+      console.log('response ProtoOASubscribeSpotsReq', rs);
     });
+
+  // listen event spot
+  service.on('ProtoOASpotEvent', (message: any) => {
+    console.log('Event ProtoOASpotEvent', message);
   });
 
-connector.on('ProtoOASpotEvent', rs => {
-  console.log(rs);
-});
+  // heartbeat
+  service.on('ProtoHeartbeatEvent', (message: any) => {
+    console.log('heartbeat', message);
+    service.send('ProtoHeartbeatEvent', {});
+  });
+}
+factory();

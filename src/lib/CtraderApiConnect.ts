@@ -1,33 +1,17 @@
-/* eslint-disable @typescript-eslint/ban-ts-ignore */
-// @ts-ignore
-import * as ProtoMessages from 'connect-protobuf-messages'; //@TODO replace with protobufjs
+import { Codec } from './Codec';
 import * as tls from 'tls';
 import * as hat from 'hat';
-import * as EventEmiter from 'events';
+import { EventEmitter } from 'events';
 import { Subject, interval } from 'rxjs';
 import { Command } from './Command';
 
-ProtoMessages.prototype.getPayloadNameByType = function(type: number): string {
-  return typeof this.payloadTypes[type] != 'undefined'
-    ? this.payloadTypes[type].name
-    : 'Unknown';
-};
-const protocol = new ProtoMessages([
-  {
-    file: 'message-model/OpenApiCommonMessages.proto',
-  },
-  {
-    file: 'message-model/OpenApiMessages.proto',
-  },
-]);
-protocol.load();
-protocol.build();
+const protocol = new Codec();
 
 type CtraderApiConnectParam = {
   host: string;
   port: number;
 };
-export class CtraderApiConnect extends EventEmiter {
+export class CtraderApiConnect extends EventEmitter {
   isConnected = false;
   adapter: tls.TLSSocket;
   connectState$: Subject<boolean>;
@@ -43,10 +27,21 @@ export class CtraderApiConnect extends EventEmiter {
       }
     });
 
-    this.adapter = tls.connect({ host: params.host, port: params.port }, () => {
-      this.isConnected = true;
-      this.connectState$.next(this.isConnected);
-    });
+    this.adapter = tls
+      .connect({ host: params.host, port: params.port }, () => {
+        protocol
+          .loadFromFiles([
+            'message-model/OpenApiCommonMessages.proto',
+            'message-model/OpenApiMessages.proto',
+          ])
+          .then(() => {
+            this.isConnected = true;
+            this.connectState$.next(this.isConnected);
+            console.log('init complete');
+          });
+      })
+      .setEncoding('binary')
+      .setDefaultEncoding('binary');
 
     this.adapter.on('data', this.onAdapterData);
     this.adapter.on('end', () => {
@@ -73,7 +68,12 @@ export class CtraderApiConnect extends EventEmiter {
         const command = this.commandStack[i];
         if (command.status == 'new') {
           command.markAsSent();
-          this.adapter.write(command.message);
+          const encodedMessage = this.encodeMessage(
+            command.message.type,
+            command.message.message,
+            command.message.clientMsgId,
+          );
+          this.adapter.write(encodedMessage);
         }
       }
     }
@@ -82,17 +82,12 @@ export class CtraderApiConnect extends EventEmiter {
   // exchange Socket::write -> request-response
   send = (type: string, message: any): Promise<any> => {
     // get type
-    const payloadType = protocol.getPayloadTypeByName(type);
     const clientMsgId = hat();
-    const encodedMessage = this.encodeMessage(
-      payloadType,
-      message,
-      clientMsgId,
-    );
 
-    const command = new Command(clientMsgId, encodedMessage);
+    const command = new Command(clientMsgId, { type, message, clientMsgId });
     if (this.isConnected) {
       command.markAsSent();
+      const encodedMessage = this.encodeMessage(type, message, clientMsgId);
       this.adapter.write(encodedMessage);
     }
     this.commandStack.push(command);
@@ -100,27 +95,24 @@ export class CtraderApiConnect extends EventEmiter {
   };
 
   encodeMessage = (
-    payloadType: number,
+    payloadType: string,
     payload: any,
     clientMsgId?: string,
   ): Buffer => {
-    const encodedMessage = protocol.encode(
-      payloadType,
-      payload,
-      clientMsgId || hat(),
-    );
-
-    const data = encodedMessage.toBuffer();
-    const sizeLength = 4;
-    const dataLength = data.length;
-    const size = new Buffer(sizeLength);
-    size.writeInt32BE(dataLength, 0);
-    return Buffer.concat([size, data], sizeLength + dataLength);
+    return protocol.encode(payloadType, payload, clientMsgId || hat());
   };
 
-  onAdapterData = (buffer: Buffer): void => {
-    const data = protocol.decode(buffer);
-    const name = protocol.getPayloadNameByType(data.payloadType);
+  onAdapterData = (buffer: string): void => {
+    let data: any;
+
+    try {
+      data = protocol.decode(buffer);
+    } catch (error) {
+      console.log(error);
+      return;
+    }
+
+    const name = protocol.getNameByPayloadType(data.payloadType);
     if ('clientMsgId' in data) {
       const index = this.commandStack.findIndex(
         item => item.id == data.clientMsgId,
